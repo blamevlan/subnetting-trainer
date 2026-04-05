@@ -20,7 +20,7 @@ Available in **German and English**.
 
 | File | Requirements |
 |------|--------------|
-| `trainer.py` | Python 3.6+ (duh) — Linux, macOS, Windows |
+| `subnetting-trainer.py` | Python 3.6+ (duh) — Linux, macOS, Windows |
 | `subnetting-trainer.html` | Any browser, any system — no installation needed |
 
 Windows doesn't come with Python by default, so if you don't have it installed or don't know how to, just use the HTML version — that's the recommended way on Windows anyway.
@@ -29,7 +29,7 @@ Windows doesn't come with Python by default, so if you don't have it installed o
 
 **Terminal:**
 ```bash
-python3 trainer.py
+python3 subnetting-trainer.py
 ```
 
 **Browser:**
