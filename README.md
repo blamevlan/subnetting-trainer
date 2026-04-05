@@ -18,20 +18,22 @@ Available in **German and English**.
 
 ## Versions
 
-| File | Platform | Requirements |
-|------|----------|--------------|
-| `trainer.py` | Linux / macOS | Python 3.6+ |
-| `index.html` | Windows (recommended) + any browser | None — just open the file |
+| File | Requirements |
+|------|--------------|
+| `trainer.py` | Python 3.6+ (duh) — Linux, macOS, Windows |
+| `subnetting-trainer.html` | Any browser, any system — no installation needed |
+
+Windows doesn't come with Python by default, so if you don't have it installed or don't know how to, just use the HTML version — that's the recommended way on Windows anyway.
 
 ## Usage
 
-**Terminal (Linux/macOS/Windows):**
+**Terminal:**
 ```bash
 python3 trainer.py
 ```
 
-**Browser (Windows):**
-Just open `index.html` in any browser — no installation needed.
+**Browser:**
+Just open `subnetting-trainer.html` — works on any system, no installation needed.
 
 ## Screenshots
 
