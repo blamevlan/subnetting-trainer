@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subnetting Trainer – blamevlan</title>
+<style>
+  :root {
+    --bg:     #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #e6edf3; --dim:  #8b949e;
+    --green:  #3fb950; --red:  #f85149; --yellow:#d29922;
+    --blue:   #58a6ff; --purple:#bc8cff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Consolas','Courier New',monospace;
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; padding: 2rem 1rem;
+  }
+  h1 { color: var(--blue); font-size: 1.6rem; letter-spacing: 2px; margin-bottom: .2rem; }
+  .subtitle { color: var(--dim); font-size: .82rem; margin-bottom: 1.5rem; }
+
+  .topbar {
+    width: 100%; max-width: 700px;
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: .75rem;
+  }
+  .lang-btn {
+    padding: .3rem .8rem; border-radius: 5px;
+    border: 1px solid var(--border); background: var(--bg3);
+    color: var(--dim); cursor: pointer; font-family: inherit; font-size: .8rem;
+  }
+  .lang-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+  .card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.5rem;
+    width: 100%; max-width: 700px; margin-bottom: 1rem;
+  }
+  .score-bar { display: flex; gap: 1.5rem; font-size: .88rem; color: var(--dim); margin-bottom: 1.2rem; flex-wrap: wrap; }
+  .score-bar b { color: var(--text); }
+  .score-bar .ok  { color: var(--green); }
+  .score-bar .bad { color: var(--red); }
+
+  /* Screen management */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Mode menu */
+  .menu-title { font-size: 1rem; font-weight: bold; margin-bottom: 1rem; color: var(--text); }
+  .mode-list { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1.5rem; }
+  .mode-item {
+    padding: .75rem 1rem; border-radius: 7px;
+    border: 1px solid var(--border); background: var(--bg3);
+    cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .mode-item:hover { border-color: var(--blue); background: #1a2233; }
+  .mode-item .mode-icon { color: var(--blue); font-size: 1.1rem; margin-right: .5rem; }
+  .mode-item .mode-label { font-size: .9rem; }
+  .mode-item .mode-desc  { font-size: .78rem; color: var(--dim); margin-top: .2rem; }
+
+  .diff-row { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .diff-btn {
+    padding: .35rem .8rem; border-radius: 5px;
+    border: 1px solid var(--border); background: var(--bg3);
+    color: var(--dim); cursor: pointer; font-family: inherit; font-size: .8rem;
+  }
+  .diff-btn:hover  { border-color: var(--yellow); color: var(--yellow); }
+  .diff-btn.active { border-color: var(--yellow); color: var(--yellow); background: #2a2100; }
+
+  /* Back button */
+  .back-btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .3rem .7rem; border-radius: 5px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--dim); cursor: pointer; font-family: inherit; font-size: .82rem;
+    margin-bottom: 1rem; transition: border-color .15s, color .15s;
+  }
+  .back-btn:hover { border-color: var(--text); color: var(--text); }
+
+  /* Task */
+  .task-label { color: var(--dim); font-size: .8rem; margin-bottom: .4rem; }
+  .task-ip { font-size: 1.5rem; font-weight: bold; color: var(--yellow); margin-bottom: 1.2rem; letter-spacing: 1px; }
+
+  .questions { display: flex; flex-direction: column; gap: .6rem; }
+  .q-row { display: flex; align-items: flex-start; gap: .75rem; flex-wrap: wrap; }
+  .q-label { width: 130px; color: var(--dim); font-size: .84rem; flex-shrink: 0; padding-top: .45rem; }
+  .q-input {
+    flex: 1; min-width: 160px;
+    padding: .4rem .75rem; background: var(--bg3);
+    border: 1px solid var(--border); border-radius: 5px;
+    color: var(--text); font-family: inherit; font-size: .9rem;
+    transition: border-color .15s;
+  }
+  .q-input:focus  { outline: none; border-color: var(--blue); }
+  .q-input.correct { border-color: var(--green); background: #0d2a0f; }
+  .q-input.wrong   { border-color: var(--red);   background: #2a0d0d; }
+  .q-hint { width: 100%; padding: .45rem .75rem; border-radius: 5px; font-size: .8rem; display: none; }
+  .q-hint.show { display: block; }
+  .q-hint.ok  { background: #0d2a0f; color: var(--green); border: 1px solid #1a4a1a; }
+  .q-hint.err { background: #2a0d0d; color: #ff8080;      border: 1px solid #5a1a1a; }
+
+  .btn-row { display: flex; gap: .75rem; margin-top: 1.2rem; flex-wrap: wrap; }
+  button.primary {
+    padding: .5rem 1.3rem; border-radius: 6px; border: none;
+    background: var(--blue); color: #000; font-family: inherit;
+    font-weight: bold; font-size: .88rem; cursor: pointer; transition: opacity .15s;
+  }
+  button.primary:hover { opacity: .85; }
+  button.secondary {
+    padding: .5rem 1.1rem; border-radius: 6px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--dim); font-family: inherit; font-size: .88rem; cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  button.secondary:hover { border-color: var(--text); color: var(--text); }
+
+  /* Solution */
+  .solution { margin-top: 1.2rem; display: none; }
+  .solution.show { display: block; }
+  .sol-title { color: var(--yellow); font-size: .85rem; margin-bottom: .6rem; font-weight: bold; }
+  .sol-grid {
+    display: grid; grid-template-columns: 140px 1fr 1fr;
+    gap: .3rem .75rem; font-size: .84rem; margin-bottom: .75rem;
+  }
+  .sol-key  { color: var(--dim); }
+  .sol-val  { color: var(--green); font-weight: bold; }
+  .sol-note { color: var(--dim); font-size: .76rem; }
+
+  /* Binary */
+  .binary-block {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; padding: .9rem; margin-top: .6rem;
+  }
+  .bin-title { color: var(--purple); font-size: .8rem; margin-bottom: .6rem; font-weight: bold; }
+  .bin-row   { display: flex; align-items: center; gap: .75rem; margin-bottom: .35rem; flex-wrap: wrap; }
+  .bin-label { width: 110px; color: var(--dim); font-size: .77rem; flex-shrink: 0; }
+  .bin-val   { font-size: .81rem; letter-spacing: .4px; }
+  .b-net  { color: var(--green); }
+  .b-host { color: var(--yellow); }
+  .b-sep  { color: var(--dim); }
+  .bin-legend { margin-top: .6rem; font-size: .74rem; color: var(--dim); }
+  .formula    { margin-top: .6rem; font-size: .81rem; color: var(--blue); }
+
+  /* Binary mode */
+  .bin-exercise { font-size: 1.4rem; color: var(--yellow); font-weight: bold; margin-bottom: 1rem; }
+  .werte-table  { width: 100%; border-collapse: collapse; font-size: .84rem; margin-bottom: 1rem; }
+  .werte-table th, .werte-table td { border: 1px solid var(--border); padding: .32rem .5rem; text-align: center; }
+  .werte-table th { background: var(--bg3); color: var(--dim); }
+  .werte-table td.active   { color: var(--green); background: #0d2a0f; font-weight: bold; }
+  .werte-table td.inactive { color: var(--dim); }
+
+  /* CIDR mode */
+  .cidr-table { width: 100%; border-collapse: collapse; font-size: .82rem; margin-top: .6rem; }
+  .cidr-table th, .cidr-table td { border: 1px solid var(--border); padding: .28rem .6rem; }
+  .cidr-table th { background: var(--bg3); color: var(--dim); }
+  .cidr-table tr.best     td { color: var(--green);  font-weight: bold; background: #0d2a0f; }
+  .cidr-table tr.toobig   td { color: var(--dim); }
+  .cidr-table tr.toosmall td { color: var(--red); }
+
+  footer { margin-top: 2rem; color: var(--dim); font-size: .75rem; }
+  footer a { color: var(--blue); text-decoration: none; }
+</style>
+</head>
+<body>
+<h1>SUBNET TRAINER</h1>
+<p class="subtitle">github.com/blamevlan</p>
+
+<div class="topbar">
+  <div class="score-bar" id="scorebar">
+    <span data-k="round_lbl">Runde</span> <span class="ok"><b id="s-runde">0</b></span> &nbsp;
+    <span class="ok"><b id="s-richtig">0</b> ✓</span>
+    <span class="bad"><b id="s-falsch">0</b> ✗</span>
+    <span>Score: <b id="s-score">–</b></span>
+  </div>
+  <button class="lang-btn" onclick="toggleLang()">🌐 DE / EN</button>
+</div>
+
+<div class="card">
+
+  <!-- ── Menü ── -->
+  <div id="screen-menu" class="screen active">
+    <div class="menu-title" data-k="menu_title">Was möchtest du üben?</div>
+    <div class="mode-list">
+      <div class="mode-item" onclick="startModus(1)">
+        <span class="mode-icon">📡</span><span class="mode-label" data-k="mode1_label">Subnetting</span>
+        <div class="mode-desc" data-k="mode1_desc">IP/CIDR → Maske, Netzadresse, Broadcast, Hosts berechnen</div>
+      </div>
+      <div class="mode-item" onclick="startModus(2)">
+        <span class="mode-icon">🔢</span><span class="mode-label" data-k="mode2_label">Binär ↔ Dezimal</span>
+        <div class="mode-desc" data-k="mode2_desc">Dezimal in Binär und Binär in Dezimal umrechnen</div>
+      </div>
+      <div class="mode-item" onclick="startModus(3)">
+        <span class="mode-icon">🎯</span><span class="mode-label" data-k="mode3_label">CIDR aus Hosts</span>
+        <div class="mode-desc" data-k="mode3_desc">Hostanzahl gegeben → kleinsten passenden CIDR-Prefix finden</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Subnetting ── -->
+  <div id="screen-subnet" class="screen">
+    <button class="back-btn" onclick="zeigeMenu()">← <span data-k="back">Zurück</span></button>
+    <div class="diff-row" id="diff-row">
+      <button class="diff-btn" onclick="setDiff(1)" data-k="diff1">Einfach /8 /16 /24</button>
+      <button class="diff-btn active" onclick="setDiff(2)" data-k="diff2">Mittel beliebig</button>
+      <button class="diff-btn" onclick="setDiff(3)" data-k="diff3">Schwer /17–/30</button>
+    </div>
+    <div class="task-label" data-k="given_lbl">Gegeben:</div>
+    <div class="task-ip" id="task-ip">–</div>
+    <div class="questions" id="questions"></div>
+    <div class="btn-row">
+      <button class="primary" onclick="pruefen()" data-k="check">Prüfen</button>
+      <button class="secondary" onclick="naechste()" data-k="next">Nächste Aufgabe</button>
+    </div>
+    <div class="solution" id="solution">
+      <div class="sol-title" data-k="sol_title">✔ Vollständige Lösung</div>
+      <div class="sol-grid" id="sol-grid"></div>
+      <div class="binary-block" id="binary-block"></div>
+    </div>
+  </div>
+
+  <!-- ── Binär ── -->
+  <div id="screen-binary" class="screen">
+    <button class="back-btn" onclick="zeigeMenu()">← <span data-k="back">Zurück</span></button>
+    <div class="task-label" id="bin-direction">–</div>
+    <div class="bin-exercise" id="bin-given">–</div>
+    <table class="werte-table">
+      <thead><tr><th>128</th><th>64</th><th>32</th><th>16</th><th>8</th><th>4</th><th>2</th><th>1</th></tr></thead>
+      <tbody><tr id="werte-bits"></tr></tbody>
+    </table>
+    <div class="questions">
+      <div class="q-row">
+        <div class="q-label" id="bin-q-label">Antwort</div>
+        <input class="q-input" id="bin-input" placeholder="–" onkeydown="if(event.key==='Enter') pruefenBinaer()">
+      </div>
+      <div class="q-hint" id="bin-hint"></div>
+    </div>
+    <div class="btn-row">
+      <button class="primary" onclick="pruefenBinaer()" data-k="check">Prüfen</button>
+      <button class="secondary" onclick="naechsteBinaer()" data-k="next">Nächste Aufgabe</button>
+    </div>
+  </div>
+
+  <!-- ── CIDR ── -->
+  <div id="screen-cidr" class="screen">
+    <button class="back-btn" onclick="zeigeMenu()">← <span data-k="back">Zurück</span></button>
+    <div class="task-label" data-k="cidr_need_lbl">Du brauchst ein Subnetz für mindestens:</div>
+    <div class="task-ip" id="cidr-hosts-display">–</div>
+    <div class="questions">
+      <div class="q-row">
+        <div class="q-label" data-k="cidr_q_lbl">CIDR Prefix</div>
+        <input class="q-input" id="cidr-input" placeholder="z.B. 25" onkeydown="if(event.key==='Enter') pruefenCidr()">
+      </div>
+      <div class="q-hint" id="cidr-hint"></div>
+    </div>
+    <div class="btn-row">
+      <button class="primary" onclick="pruefenCidr()" data-k="check">Prüfen</button>
+      <button class="secondary" onclick="naechsteCidr()" data-k="next">Nächste Aufgabe</button>
+    </div>
+    <div class="solution" id="cidr-solution">
+      <table class="cidr-table" id="cidr-table"></table>
+    </div>
+  </div>
+
+</div>
+
+<footer>Made by <a href="https://github.com/blamevlan" target="_blank">blamevlan</a></footer>
+
+<script>
+// ── Übersetzungen ───────────────────────────────────────────────────────────────
+const STR = {
+  de: {
+    menu_title:   "Was möchtest du üben?",
+    mode1_label:  "Subnetting",
+    mode1_desc:   "IP/CIDR → Maske, Netzadresse, Broadcast, Hosts berechnen",
+    mode2_label:  "Binär ↔ Dezimal",
+    mode2_desc:   "Dezimal in Binär und Binär in Dezimal umrechnen",
+    mode3_label:  "CIDR aus Hosts",
+    mode3_desc:   "Hostanzahl gegeben → kleinsten passenden CIDR-Prefix finden",
+    back:         "Zurück",
+    diff1:        "Einfach /8 /16 /24",
+    diff2:        "Mittel beliebig",
+    diff3:        "Schwer /17–/30",
+    given_lbl:    "Gegeben:",
+    check:        "Prüfen",
+    next:         "Nächste Aufgabe",
+    sol_title:    "✔ Vollständige Lösung",
+    correct:      "✓ Richtig!",
+    wrong:        "✗ Falsch. Richtig:",
+    cidr_need_lbl:"Du brauchst ein Subnetz für mindestens:",
+    cidr_q_lbl:   "CIDR Prefix",
+    round_lbl:    "Runde",
+    bin_d2b:      "Dezimal → Binär (8 Bit, z.B. 11000000)",
+    bin_b2d:      "Binär → Dezimal",
+    bin_answer_d2b: "Binär",
+    bin_answer_b2d: "Dezimal",
+    werte_hint:   "128 | 64 | 32 | 16 | 8 | 4 | 2 | 1",
+    tip_d2b:      "Tipp: Von links → Passt 128 in die Zahl? Ja=1, Nein=0. Weiter mit Rest.",
+    tip_b2d:      "Tipp: Addiere alle Stellen wo eine 1 steht.",
+    cidr_smallest:"← kleinster passender",
+    cidr_ok:      (b,h)     => `✓ Richtig! /${b} bietet ${h} Hosts.`,
+    cidr_close:   (u,b)     => `Fast! /${u} würde reichen, aber /${b} ist das <b>kleinste</b> Subnetz. Immer kleinstes nehmen → spart Adressen (VLSM).`,
+    cidr_small:   (u,h,b,n) => `✗ /${u} bietet nur ${h} Hosts — zu wenig für ${n}! Richtig: <b>/${b}</b>`,
+    cidr_tip:     (n)       => `Tipp: 2^(32−Prefix) − 2 muss ≥ ${n} sein.`,
+    bin_legend:   (p) => `<span class="b-net">■ Netzanteil (${p} Bit)</span> &nbsp; <span class="b-host">■ Hostanteil (${32-p} Bit)</span>`,
+    fields: {
+      mask: { label:"Subnetzmaske", note:(p)=>`(${p} Einser-Bits)`,        tip:(p)=>`Tipp: ${p} Einser-Bits, dann Nullen. Gültige Werte: 0,128,192,224,240,248,252,254,255` },
+      net:  { label:"Netzadresse",  note:()=>"(Host-Bits alle 0)",          tip:()=>"Tipp: IP AND Maske → alle Host-Bits auf 0" },
+      bc:   { label:"Broadcast",    note:()=>"(Host-Bits alle 1)",          tip:()=>"Tipp: Netzadresse + alle Host-Bits auf 1" },
+      eh:   { label:"Erster Host",  note:()=>"(Netzadresse + 1)",           tip:()=>"Tipp: Erster Host = Netzadresse + 1" },
+      lh:   { label:"Letzter Host", note:()=>"(Broadcast − 1)",             tip:()=>"Tipp: Letzter Host = Broadcast − 1" },
+      ah:   { label:"Anzahl Hosts", note:(p)=>`(2^${32-p} − 2)`,           tip:(p)=>`Tipp: 2^(32−${p}) − 2 = ${Math.max(0,Math.pow(2,32-p)-2)}` },
+    },
+  },
+  en: {
+    menu_title:   "What do you want to practice?",
+    mode1_label:  "Subnetting",
+    mode1_desc:   "IP/CIDR → mask, network address, broadcast, hosts",
+    mode2_label:  "Binary ↔ Decimal",
+    mode2_desc:   "Convert decimal to binary and binary to decimal",
+    mode3_label:  "CIDR from Hosts",
+    mode3_desc:   "Given a host count → find the smallest fitting CIDR prefix",
+    back:         "Back",
+    diff1:        "Easy /8 /16 /24",
+    diff2:        "Medium any CIDR",
+    diff3:        "Hard /17–/30",
+    given_lbl:    "Given:",
+    check:        "Check",
+    next:         "Next Task",
+    sol_title:    "✔ Full Solution",
+    correct:      "✓ Correct!",
+    wrong:        "✗ Wrong. Correct:",
+    cidr_need_lbl:"You need a subnet for at least:",
+    cidr_q_lbl:   "CIDR Prefix",
+    round_lbl:    "Round",
+    bin_d2b:      "Decimal → Binary (8 bit, e.g. 11000000)",
+    bin_b2d:      "Binary → Decimal",
+    bin_answer_d2b: "Binary",
+    bin_answer_b2d: "Decimal",
+    werte_hint:   "128 | 64 | 32 | 16 | 8 | 4 | 2 | 1",
+    tip_d2b:      "Tip: Left to right → Does 128 fit? Yes=1, No=0. Continue with remainder.",
+    tip_b2d:      "Tip: Add all positions where a 1 is set.",
+    cidr_smallest:"← smallest fitting",
+    cidr_ok:      (b,h)     => `✓ Correct! /${b} provides ${h} hosts.`,
+    cidr_close:   (u,b)     => `Close! /${u} works, but /${b} is the <b>smallest</b> subnet. Always use smallest → saves addresses (VLSM).`,
+    cidr_small:   (u,h,b,n) => `✗ /${u} only provides ${h} hosts — not enough for ${n}! Correct: <b>/${b}</b>`,
+    cidr_tip:     (n)       => `Tip: 2^(32−Prefix) − 2 must be ≥ ${n}.`,
+    bin_legend:   (p) => `<span class="b-net">■ Net part (${p} bit)</span> &nbsp; <span class="b-host">■ Host part (${32-p} bit)</span>`,
+    fields: {
+      mask: { label:"Subnet Mask",  note:(p)=>`(${p} one-bits)`,             tip:(p)=>`Tip: ${p} one-bits, then zeros. Valid values: 0,128,192,224,240,248,252,254,255` },
+      net:  { label:"Network Addr", note:()=>"(all host bits = 0)",           tip:()=>"Tip: IP AND Mask → all host bits set to 0" },
+      bc:   { label:"Broadcast",    note:()=>"(all host bits = 1)",           tip:()=>"Tip: Network address + all host bits set to 1" },
+      eh:   { label:"First Host",   note:()=>"(network address + 1)",         tip:()=>"Tip: First host = network address + 1" },
+      lh:   { label:"Last Host",    note:()=>"(broadcast − 1)",               tip:()=>"Tip: Last host = broadcast − 1" },
+      ah:   { label:"# of Hosts",   note:(p)=>`(2^${32-p} − 2)`,             tip:(p)=>`Tip: 2^(32−${p}) − 2 = ${Math.max(0,Math.pow(2,32-p)-2)}` },
+    },
+  },
+};
+
+// ── State ───────────────────────────────────────────────────────────────────────
+let lang = "de", diff = 2;
+let punkte = 0, fehler = 0, runden = 0;
+let aktNetz = null, binAuf = null, cidrAuf = null;
+
+function t(k, ...args) {
+  const v = STR[lang][k];
+  return typeof v === "function" ? v(...args) : v;
+}
+
+// ── Sprache ─────────────────────────────────────────────────────────────────────
+function toggleLang() {
+  lang = lang === "de" ? "en" : "de";
+  document.documentElement.lang = lang;
+  // Alle data-k Elemente aktualisieren
+  document.querySelectorAll("[data-k]").forEach(el => {
+    const key = el.dataset.k;
+    const v   = STR[lang][key];
+    if (typeof v === "string") el.textContent = v;
+  });
+  document.getElementById("s-runde").parentElement.querySelector("[data-k='round_lbl']").textContent = t("round_lbl");
+}
+
+// ── Screens ─────────────────────────────────────────────────────────────────────
+function zeigeScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+function zeigeMenu() { zeigeScreen("screen-menu"); }
+
+function startModus(m) {
+  if (m === 1) { zeigeScreen("screen-subnet"); naechste(); }
+  if (m === 2) { zeigeScreen("screen-binary"); naechsteBinaer(); }
+  if (m === 3) { zeigeScreen("screen-cidr");   naechsteCidr(); }
+}
+
+// ── Score ────────────────────────────────────────────────────────────────────────
+function updScore() {
+  document.getElementById("s-runde").textContent  = runden;
+  document.getElementById("s-richtig").textContent = punkte;
+  document.getElementById("s-falsch").textContent  = fehler;
+  const g = punkte + fehler;
+  document.getElementById("s-score").textContent   = g > 0 ? Math.round(punkte/g*100)+"%" : "–";
+}
+
+// ── IP-Rechnen ───────────────────────────────────────────────────────────────────
+function ip2int(ip) { return ip.split(".").reduce((a,o)=>(a<<8)|+o,0)>>>0; }
+function int2ip(n)  { return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join("."); }
+function mask(p)    { return int2ip(p===0?0:(0xFFFFFFFF<<(32-p))>>>0); }
+function netAddr(ip,m){ return int2ip((ip2int(ip)&ip2int(m))>>>0); }
+function bcast(net,p) { return int2ip((ip2int(net)|((p===0?0xFFFFFFFF:0xFFFFFFFF>>>p)))>>>0); }
+function hosts(p)     { return Math.max(0,Math.pow(2,32-p)-2); }
+function firstHost(net,p){ return p>=31?net:int2ip((ip2int(net)+1)>>>0); }
+function lastHost(bc,p)  { return p>=31?bc:int2ip((ip2int(bc)-1)>>>0); }
+
+function randNet() {
+  const prefixes = diff===1?[8,16,24]:diff===2?[...Array(23)].map((_,i)=>i+8):[...Array(14)].map((_,i)=>i+17);
+  const p   = prefixes[Math.floor(Math.random()*prefixes.length)];
+  const okt = Array.from({length:4},()=>Math.floor(Math.random()*254)+1);
+  const m   = mask(p);
+  const net = netAddr(okt.join("."), m);
+  const bc  = bcast(net, p);
+  return { ip:okt.join("."), p, m, net, bc, eh:firstHost(net,p), lh:lastHost(bc,p), ah:hosts(p) };
+}
+
+function setDiff(d) {
+  diff = d;
+  document.querySelectorAll(".diff-btn").forEach((b,i) => b.classList.toggle("active", i===d-1));
+  naechste();
+}
+
+// ── Binärdarstellung ─────────────────────────────────────────────────────────────
+function ipToBinHTML(ip, p) {
+  const okt  = ip.split(".").map(Number);
+  const bits = okt.map(o=>o.toString(2).padStart(8,"0")).join("");
+  let html   = "";
+  for (let i=0; i<32; i++) {
+    if (i>0 && i%8===0) html += '<span class="b-sep">.</span>';
+    html += `<span class="${i<p?"b-net":"b-host"}">${bits[i]}</span>`;
+  }
+  return html;
+}
+function maskToBinHTML(m) {
+  const okt  = m.split(".").map(Number);
+  const bits = okt.map(o=>o.toString(2).padStart(8,"0")).join("");
+  let html   = "", seen0 = false;
+  for (let i=0; i<32; i++) {
+    if (i>0 && i%8===0) html += '<span class="b-sep">.</span>';
+    const cls = bits[i]==="1" ? "b-net" : "b-host";
+    html += `<span class="${cls}">${bits[i]}</span>`;
+  }
+  return html;
+}
+
+// ── Modus 1: Subnetting ──────────────────────────────────────────────────────────
+const FELDER = ["mask","net","bc","eh","lh","ah"];
+
+function naechste() {
+  aktNetz = randNet(); runden++; updScore();
+  document.getElementById("task-ip").textContent = `${aktNetz.net}/${aktNetz.p}`;
+  const q = document.getElementById("questions");
+  q.innerHTML = "";
+  const vals = { mask:aktNetz.m, net:aktNetz.net, bc:aktNetz.bc, eh:aktNetz.eh, lh:aktNetz.lh, ah:aktNetz.ah };
+  FELDER.forEach(k => {
+    const f = t("fields")[k];
+    q.innerHTML += `
+      <div class="q-row">
+        <div class="q-label">${f.label}</div>
+        <input class="q-input" id="inp-${k}" placeholder="–"
+          data-ans="${vals[k]}" onkeydown="if(event.key==='Enter') pruefen()">
+      </div>
+      <div class="q-hint" id="hint-${k}"></div>`;
+  });
+  document.getElementById("solution").classList.remove("show");
+  setTimeout(() => document.getElementById("inp-mask")?.focus(), 50);
+}
+
+function pruefen() {
+  let r = 0, f = 0;
+  FELDER.forEach(k => {
+    const inp  = document.getElementById(`inp-${k}`);
+    const hint = document.getElementById(`hint-${k}`);
+    const val  = inp.value.trim();
+    const soll = inp.dataset.ans;
+    if (!val) return;
+    if (val.toLowerCase() === soll.toLowerCase()) {
+      inp.classList.add("correct"); inp.classList.remove("wrong");
+      hint.className = "q-hint ok show"; hint.textContent = t("correct");
+      r++;
+    } else {
+      inp.classList.add("wrong"); inp.classList.remove("correct");
+      hint.className = "q-hint err show";
+      hint.innerHTML = genHint(k, soll, val);
+      f++;
+    }
+  });
+  punkte += r; fehler += f; updScore();
+  zeigeLoesung();
+}
+
+function genHint(k, richtig, falsch) {
+  const fld   = t("fields")[k];
+  const p     = aktNetz.p;
+  let msg     = `${t("wrong")} <b>${richtig}</b>`;
+  msg += `<br><span style="color:var(--yellow);font-size:.78rem">${fld.tip(p)}</span>`;
+  // Oktet-Vergleich
+  const r4 = richtig.split(".");
+  const f4 = falsch.split(".");
+  if (r4.length===4 && f4.length===4) {
+    let rl="", fl="";
+    for (let i=0; i<4; i++) {
+      const match = r4[i]===f4[i];
+      rl += `<span style="color:var(--green);font-weight:${match?"":"bold"}">${r4[i]}</span>${i<3?".":""}`;
+      fl += `<span style="color:${match?"var(--dim)":"var(--red)"};font-weight:${match?"":"bold"}">${f4[i]||"?"}</span>${i<3?".":""}`;
+    }
+    msg += `<br><span style="font-size:.76rem;color:var(--dim)">${t("correct").replace("✓ ","").replace("Correct","")}: ${rl} | ${lang==="de"?"Deine":"Yours"}: ${fl}</span>`;
+  }
+  return msg;
+}
+
+function zeigeLoesung() {
+  const n   = aktNetz;
+  const sol = document.getElementById("solution");
+  sol.classList.add("show");
+
+  const rows = [
+    ["mask", n.m],  ["net", n.net], ["bc", n.bc],
+    ["eh",  n.eh],  ["lh", n.lh],  ["ah", n.ah],
+  ];
+  document.getElementById("sol-grid").innerHTML = rows.map(([k,v]) => {
+    const f = t("fields")[k];
+    return `<div class="sol-key">${f.label}</div><div class="sol-val">${v}</div><div class="sol-note">${f.note(n.p)}</div>`;
+  }).join("");
+
+  document.getElementById("binary-block").innerHTML = `
+    <div class="bin-title">${lang==="de"?"Binärdarstellung (grün = Netzanteil, gelb = Hostanteil)":"Binary (green = net part, yellow = host part)"}</div>
+    <div class="bin-row"><div class="bin-label">${lang==="de"?"Netzadresse":"Network Addr"}</div><div class="bin-val">${ipToBinHTML(n.net, n.p)}</div></div>
+    <div class="bin-row"><div class="bin-label">${lang==="de"?"Subnetzmaske":"Subnet Mask"}</div><div class="bin-val">${maskToBinHTML(n.m)}</div></div>
+    <div class="bin-row"><div class="bin-label">Broadcast</div><div class="bin-val">${ipToBinHTML(n.bc, n.p)}</div></div>
+    <div class="bin-legend">${t("bin_legend")(n.p)}</div>
+    <div class="formula">${lang==="de"?"Formel":"Formula"}: 2^(32−${n.p}) − 2 = <b>${n.ah}</b> ${lang==="de"?"nutzbare Hosts":"usable hosts"}</div>`;
+}
+
+// ── Modus 2: Binär ───────────────────────────────────────────────────────────────
+function naechsteBinaer() {
+  binAuf = { zahl: Math.floor(Math.random()*256), richtung: Math.random()<.5?"d2b":"b2d" };
+  binAuf.bits = binAuf.zahl.toString(2).padStart(8,"0");
+  runden++; updScore();
+  const inp  = document.getElementById("bin-input");
+  const hint = document.getElementById("bin-hint");
+  inp.value = ""; inp.className = "q-input";
+  hint.className = "q-hint";
+
+  const dir = document.getElementById("bin-direction");
+  const giv = document.getElementById("bin-given");
+  const lbl = document.getElementById("bin-q-label");
+
+  if (binAuf.richtung === "d2b") {
+    dir.textContent = t("bin_d2b");
+    giv.textContent = binAuf.zahl;
+    lbl.textContent = t("bin_answer_d2b");
+    inp.placeholder = "z.B. 11000000";
+  } else {
+    dir.textContent = t("bin_b2d");
+    giv.textContent = binAuf.bits;
+    lbl.textContent = t("bin_answer_b2d");
+    inp.placeholder = "z.B. 192";
+  }
+  document.getElementById("werte-bits").innerHTML =
+    [128,64,32,16,8,4,2,1].map(w=>`<td class="inactive">–</td>`).join("");
+  setTimeout(() => inp.focus(), 50);
+}
+
+function pruefenBinaer() {
+  const auf  = binAuf;
+  const inp  = document.getElementById("bin-input");
+  const hint = document.getElementById("bin-hint");
+  const nutz = inp.value.trim().replace(/\s/g,"");
+  const soll = auf.richtung==="d2b" ? auf.bits : String(auf.zahl);
+  const werte= [128,64,32,16,8,4,2,1];
+
+  document.getElementById("werte-bits").innerHTML = werte.map((w,i)=>
+    `<td class="${auf.bits[i]==="1"?"active":"inactive"}">${auf.bits[i]==="1"?w:0}</td>`
+  ).join("");
+
+  const aktiv = werte.filter((_,i)=>auf.bits[i]==="1");
+  if (nutz === soll) {
+    inp.classList.add("correct");
+    hint.className = "q-hint ok show";
+    hint.textContent = `${t("correct")} ${auf.zahl} = ${auf.bits} (${aktiv.join(" + ")} = ${auf.zahl})`;
+    punkte++;
+  } else {
+    inp.classList.add("wrong");
+    hint.className = "q-hint err show";
+    const tipp = auf.richtung==="d2b" ? t("tip_d2b") : `${t("tip_b2d")}: ${aktiv.join(" + ")} = ${auf.zahl}`;
+    hint.innerHTML = `${t("wrong")} <b>${soll}</b><br><span style="color:var(--yellow);font-size:.78rem">${tipp}</span>`;
+    fehler++;
+  }
+  updScore();
+}
+
+// ── Modus 3: CIDR aus Hosts ──────────────────────────────────────────────────────
+function naechsteCidr() {
+  const p = Math.floor(Math.random()*11)+20;
+  const ben = Math.floor(Math.random()*hosts(p))+1;
+  let bestes = null;
+  for (let x=30; x>=1; x--) { if (hosts(x)>=ben) { bestes=x; break; } }
+  cidrAuf = { ben, bestes: bestes||1 };
+  runden++; updScore();
+  document.getElementById("cidr-hosts-display").textContent = ben + (lang==="de"?" Hosts":" hosts");
+  const inp = document.getElementById("cidr-input");
+  inp.value=""; inp.className="q-input";
+  document.getElementById("cidr-hint").className="q-hint";
+  document.getElementById("cidr-solution").classList.remove("show");
+  setTimeout(()=>inp.focus(),50);
+}
+
+function pruefenCidr() {
+  const auf  = cidrAuf;
+  const inp  = document.getElementById("cidr-input");
+  const hint = document.getElementById("cidr-hint");
+  const nutz = parseInt(inp.value.replace("/","").trim());
+
+  // Tabelle
+  const sol  = document.getElementById("cidr-solution");
+  const tbl  = document.getElementById("cidr-table");
+  sol.classList.add("show");
+  const hdr  = lang==="de" ? "<tr><th>Prefix</th><th>Hosts</th><th></th></tr>" : "<tr><th>Prefix</th><th>Hosts</th><th></th></tr>";
+  let rows   = hdr;
+  for (let p=Math.max(1,auf.bestes-3); p<=Math.min(30,auf.bestes+3); p++) {
+    const h   = hosts(p);
+    const cls = p===auf.bestes?"best":(h>=auf.ben?"toobig":"toosmall");
+    const mrk = p===auf.bestes ? t("cidr_smallest") : (h<auf.ben?(lang==="de"?"← zu klein":"← too small"):"");
+    rows += `<tr class="${cls}"><td>/${p}</td><td>${h}</td><td>${mrk}</td></tr>`;
+  }
+  tbl.innerHTML = rows;
+
+  if (isNaN(nutz)) {
+    hint.className="q-hint err show";
+    hint.textContent = lang==="de"?"Bitte eine Zahl eingeben (z.B. 25).":"Please enter a number (e.g. 25).";
+    return;
+  }
+  const hNutz = hosts(nutz);
+  if (nutz === auf.bestes) {
+    inp.classList.add("correct");
+    hint.className="q-hint ok show";
+    hint.innerHTML = t("cidr_ok")(auf.bestes, hosts(auf.bestes));
+    punkte++;
+  } else if (hNutz >= auf.ben) {
+    inp.classList.add("wrong");
+    hint.className="q-hint err show";
+    hint.innerHTML = t("cidr_close")(nutz, auf.bestes);
+    fehler++;
+  } else {
+    inp.classList.add("wrong");
+    hint.className="q-hint err show";
+    hint.innerHTML = t("cidr_small")(nutz, hNutz, auf.bestes, auf.ben) + `<br><span style="color:var(--yellow);font-size:.78rem">${t("cidr_tip")(auf.ben)}</span>`;
+    fehler++;
+  }
+  updScore();
+}
+</script>
+</body>
+</html>
