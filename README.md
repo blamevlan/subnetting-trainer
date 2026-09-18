@@ -1,66 +1,43 @@
 # Subnetting Trainer
 
-An interactive subnetting trainer for IT apprentices and anyone learning networking fundamentals.
-Available in **German and English**.
+A small practice tool for subnetting and basic IP math. I built it mainly to drill the things that come up again and again when learning networking.
 
-## Features
+There are two versions: a Python terminal version and a single-file browser version. Both can be used in German or English.
 
-- **3 practice modes:**
-  - Subnetting — calculate subnet mask, network address, broadcast, first/last host, host count
-  - Binary ↔ Decimal — convert between binary and decimal with value table
-  - CIDR from hosts — find the smallest fitting prefix for a given host count
-- **Difficulty levels:** Easy (/8 /16 /24), Medium (any CIDR), Hard (/17–/30)
-- **Detailed error feedback** — octet-by-octet comparison, field-specific tips
-- **Binary representation** shown after every subnetting task
-- **Explanations menu** — theory on IP addresses, subnetting, subnet masks, CIDR, binary
-- **German / English** language selection
-- Navigate with `m` (menu) and `q` (quit) at any prompt
+## Practice modes
 
-## Versions
+- subnetting: subnet mask, network, broadcast, first and last host, host count
+- binary and decimal conversion
+- finding the smallest CIDR prefix for a required number of hosts
+- easy, medium and hard difficulty levels
+- hints and detailed feedback after wrong answers
 
-| File | Requirements |
-|------|--------------|
-| `subnetting-trainer.py` | Python 3.6+ (duh) — Linux, macOS, Windows |
-| `subnetting-trainer.html` | Any browser, any system — no installation needed |
+## Run it
 
-Windows doesn't come with Python by default, so if you don't have it installed or don't know how to, just use the HTML version — that's the recommended way on Windows anyway.
+Terminal version:
 
-## Usage
-
-**Terminal:**
 ```bash
 python3 subnetting-trainer.py
 ```
 
-**Browser:**
-Just open `subnetting-trainer.html` — works on any system, no installation needed.
+Browser version:
 
-## Screenshots
+Open `subnetting-trainer.html` directly in a browser. It does not need a server or installation.
 
+The Python version needs Python 3.6 or newer. The HTML version is the easier option on systems where Python is not installed.
+
+## Example
+
+```text
+Round 1  |  0✓  0✗  |  0%
+
+Given: 192.168.10.0/26
+
+Subnet Mask:  255.255.255.192
+Network:      192.168.10.0
+Broadcast:    192.168.10.63
 ```
-  Round 1  |  0✓  0✗  |  0%
-
-  Given: 192.168.10.0/26
-  Calculate all values for this network:
-
-  ▶ Subnet Mask (m=menu, q=quit): 255.255.255.192
-  ✓ Correct!
-  ▶ Network Addr (m=menu, q=quit): 192.168.10.0
-  ✓ Correct!
-  ...
-
-  Binary representation:
-  Network Addr   11000000.10101000.00001010.00000000
-  Subnet Mask    11111111.11111111.11111111.11000000
-  Broadcast      11000000.10101000.00001010.00111111
-```
-
-## Who is this for?
-
-- IT apprentices preparing for their exams
-- Anyone learning subnetting from scratch
-- Network engineers who want to practice quickly
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
